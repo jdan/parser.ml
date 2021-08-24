@@ -19,6 +19,9 @@ let (>>=) p f : 'b t = Parser (
       |> List.concat
   )
 
+(* Define a monadic let *)
+let (let*) o f = o >>= f
+
 let zero = Parser (fun _ -> [])
 let (++) p q =
   Parser (fun cs -> List.concat [parse p cs; parse q cs])
@@ -37,7 +40,7 @@ let (+++) p q =
    predicate, and fails otherwise
 *)
 let sat p =
-  item >>= fun c ->
+  let* c = item in
   if p c
   then return c
   else zero
@@ -50,8 +53,8 @@ let char c = sat ((==) c)
 let rec string = function
   | [] -> return []
   | c :: cs ->
-    char c >>= fun _ ->
-    string cs >>= fun _ ->
+    let* _ = char c in
+    let* _ = string cs in
     return (c :: cs)
 
 (* Parse repeated applications of a parser p; the many combinator permits zero
@@ -59,8 +62,8 @@ let rec string = function
 *)
 let rec many p = many1 p +++ return []
 and many1 p =
-  p >>= fun fst ->
-  many p >>= fun rest ->
+  let* fst = p in
+  let* rest = many p in
   return (fst :: rest)
 
 (* Parse repeated applications of a parser p, separated by applications of a
@@ -69,8 +72,8 @@ and many1 p =
 let rec sepby p sep =
   sepby1 p sep +++ return []
 and sepby1 p sep =
-  p >>= fun fst ->
-  many (sep >>= fun _ -> p) >>= fun rest ->
+  let* fst = p in
+  let* rest = many (let* _ = sep in p) in
   return (fst :: rest)
 
 (* Parse repeated applications of a parser p, separated by applications of a
@@ -81,13 +84,13 @@ let rec chainl p op a =
   chainl1 p op +++ return a
 and chainl1 p op =
   let rec rest a =
-    ( op >>= fun f ->
-      p >>= fun b ->
+    ( let* f = op in
+      let* b = p in
       rest (f a b)
-    )
-    +++ return a
+    ) +++ return a
   in
-  p >>= fun a -> rest a
+  let* a = p in
+  rest a
 
 (* Lexical combinators *)
 (* Parse a string of spaces, tabs, and newlines *)
@@ -101,8 +104,8 @@ let space =
 
 (* Parse a token using a parser p, throwing away any trailing space *)
 let token p =
-  p >>= fun a ->
-  space >>= fun _ ->
+  let* a = p in
+  let* _ = space in
   return a
 
 (* Parse a symbolic token *)
@@ -110,4 +113,4 @@ let symb cs = token (string cs)
 
 (* Apply a parser p, throwing away any leading space *)
 let apply p =
-  parse (space >>= fun _ -> p)
+  parse (let* _ = space in p)
