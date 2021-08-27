@@ -18,9 +18,15 @@ let (>>=) p f : 'b t = Parser (
       |> List.map (fun (a, cs) -> parse (f a) cs)
       |> List.concat
   )
+let map f p = Parser (
+    fun str ->
+      parse p str
+      |> List.map (fun (a, cs) -> (f a, cs))
+  )
 
 (* Define a monadic let *)
-let (let*) o f = o >>= f
+let (let*) = (>>=)
+let (let+) p f = map f p
 
 let zero = Parser (fun _ -> [])
 let (++) p q =
@@ -54,8 +60,8 @@ let rec string = function
   | [] -> return []
   | c :: cs ->
     let* _ = char c in
-    let* _ = string cs in
-    return (c :: cs)
+    let+ _ = string cs in
+    c :: cs
 
 (* Parse repeated applications of a parser p; the many combinator permits zero
    or more applications of p, while many1 permits one or more
@@ -63,8 +69,8 @@ let rec string = function
 let rec many p = many1 p +++ return []
 and many1 p =
   let* fst = p in
-  let* rest = many p in
-  return (fst :: rest)
+  let+ rest = many p in
+  fst :: rest
 
 (* Parse repeated applications of a parser p, separated by applications of a
    parser sep whose result values are thrown away
@@ -73,8 +79,8 @@ let rec sepby p sep =
   sepby1 p sep +++ return []
 and sepby1 p sep =
   let* fst = p in
-  let* rest = many (let* _ = sep in p) in
-  return (fst :: rest)
+  let+ rest = many (let* _ = sep in p) in
+  fst :: rest
 
 (* Parse repeated applications of a parser p, separated by applications of a
    parser op whose result value is an operator that is assumed to associate
@@ -105,8 +111,8 @@ let space =
 (* Parse a token using a parser p, throwing away any trailing space *)
 let token p =
   let* a = p in
-  let* _ = space in
-  return a
+  let+ _ = space in
+  a
 
 (* Parse a symbolic token *)
 let symb cs = token (string cs)
