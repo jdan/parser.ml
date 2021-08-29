@@ -100,13 +100,14 @@ and chainl1 p op =
 
 (* Lexical combinators *)
 (* Parse a string of spaces, tabs, and newlines *)
-let space =
-  let is_space = function
-    | ' ' -> true
-    | '\t' -> true
-    | '\n' -> true
-    | _ -> false
-  in many (sat is_space)
+let is_space = function
+  | ' ' -> true
+  | '\t' -> true
+  | '\n' -> true
+  | _ -> false
+
+let space = many (sat is_space)
+let non_space = many1 (sat (fun c -> not (is_space c)))
 
 (* Parse a token using a parser p, throwing away any trailing space *)
 let token p =

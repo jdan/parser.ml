@@ -4,3 +4,6 @@ let explode str =
     else exp (a - 1) (str.[a] :: b)
   in
   exp (String.length str - 1) []
+
+let implode cs =
+  String.of_seq (List.to_seq cs)
